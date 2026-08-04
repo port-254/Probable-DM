@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent & Shop Data Manager | Updated with Date & MN-ATR</title>
+
+    <!-- jsPDF + AutoTable CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js">
+    </script>
+
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --surface: #ffffff;
+            --surface-alt: #f8fafc;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --primary-light: #eff6ff;
+            --section-a: #3b82f6;
+            --section-b: #10b981;
+            --section-c: #f59e0b;
+            --section-d: #8b5cf6;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --success: #10b981;
+            --success-hover: #059669;
+            --warning: #f59e0b;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.08);
+            --radius-sm: 6px;
+            --radius: 10px;
+            --radius-lg: 14px;
+            --transition: 0.2s ease;
+            --font-mono: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .app-container {
+            max-width: 1450px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* HEADER */
+        .app-header {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 20px 28px;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+            border: 1px solid var(--border);
+        }
+        .app-header .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .app-header .logo-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius);
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #fff;
+            flex-shrink: 0;
+        }
+        .app-header h1 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--text);
+        }
+        .app-header .subtitle {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .badge-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--primary-light);
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 8px 16px;
+            border-radius: 999px;
+            white-space: nowrap;
+            border: 1px solid #bfdbfe;
+        }
+        .badge-pill .count {
+            background: var(--primary);
+            color: #fff;
+            border-radius: 50%;
+            width: 26px;
+            height: 26px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        /* CARDS */
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 24px 28px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            transition: var(--transition);
+        }
+        .card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        /* FORM LAYOUT */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 18px;
+        }
+        .form-grid.col-span-2 {
+            grid-column: span 2;
+        }
+        .section-block {
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 22px;
+            background: var(--surface-alt);
+            position: relative;
+            margin-bottom: 18px;
+        }
+        .section-block .section-badge {
+            position: absolute;
+            top: -12px;
+            left: 20px;
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            padding: 4px 12px;
+            border-radius: 999px;
+            color: #fff;
+        }
+        .section-block.section-a { border-left: 4px solid var(--section-a); background: #f8faff; }
+        .section-block.section-a .section-badge { background: var(--section-a); }
+        .section-block.section-b { border-left: 4px solid var(--section-b); background: #f8fdfb; }
+        .section-block.section-b .section-badge { background: var(--section-b); }
+        .section-block.section-c { border-left: 4px solid var(--section-c); background: #fffdf7; }
+        .section-block.section-c .section-badge { background: var(--section-c); }
+        .section-block.section-d { border-left: 4px solid var(--section-d); background: #faf9ff; }
+        .section-block.section-d .section-badge { background: var(--section-d); }
+        .section-block h3 {
+            margin-top: 6px;
+            margin-bottom: 14px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+
+        /* FORM ELEMENTS */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-bottom: 4px;
+        }
+        .form-group label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .form-group label .required-star { color: var(--danger); margin-left: 2px; }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 10px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: var(--transition);
+            background: #fff;
+            color: var(--text);
+            width: 100%;
+            outline: none;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+            background: #fff;
+        }
+        .form-group input::placeholder { color: var(--text-muted); }
+        .form-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .form-row .form-group {
+            flex: 1;
+            min-width: 120px;
+        }
+        .gps-btn {
+            padding: 10px 14px;
+            background: #fff;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--primary);
+            white-space: nowrap;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            align-self: flex-end;
+            margin-bottom: 1px;
+        }
+        .gps-btn:hover { background: var(--primary-light); border-color: var(--primary); }
+        .gps-btn:active { transform: scale(0.96); }
+
+        /* BUTTONS */
+        .btn {
+            padding: 10px 20px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.88rem;
+            cursor: pointer;
+            border: none;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            letter-spacing: 0.01em;
+            white-space: nowrap;
+            font-family: inherit;
+        }
+        .btn:active { transform: scale(0.96); }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: var(--primary-hover); box-shadow: var(--shadow-md); }
+        .btn-outline { background: #fff; border: 1.5px solid var(--border); color: var(--text); }
+        .btn-outline:hover { background: var(--surface-alt); border-color: #cbd5e1; }
+        .btn-danger { background: #fff; border: 1.5px solid #fecaca; color: var(--danger); }
+        .btn-danger:hover { background: #fef2f2; border-color: var(--danger); }
+        .btn-success { background: var(--success); color: #fff; }
+        .btn-success:hover { background: var(--success-hover); box-shadow: var(--shadow-md); }
+        .btn-csv { background: #059669; color: #fff; }
+        .btn-csv:hover { background: #047857; box-shadow: var(--shadow-md); }
+        .btn-pdf { background: #dc2626; color: #fff; }
+        .btn-pdf:hover { background: #b91c1c; box-shadow: var(--shadow-md); }
+        .btn-json { background: #4f46e5; color: #fff; }
+        .btn-json:hover { background: #4338ca; box-shadow: var(--shadow-md); }
+        .btn-import { background: #7c3aed; color: #fff; }
+        .btn-import:hover { background: #6d28d9; box-shadow: var(--shadow-md); }
+        .btn-sm { padding: 6px 12px; font-size: 0.78rem; border-radius: 4px; }
+        .btn-xs { padding: 4px 10px; font-size: 0.72rem; border-radius: 4px; }
+
+        /* ACTIONS */
+        .actions-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin-top: 8px;
+        }
+        .actions-row .spacer { flex: 1; min-width: 20px; }
+
+        /* TABLE */
+        .table-outer {
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+        .table-scroll {
+            overflow-x: auto;
+            max-height: 55vh;
+            overflow-y: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.78rem;
+            min-width: 1600px;
+        }
+        table thead { position: sticky; top: 0; z-index: 2; }
+        table thead th {
+            background: #f1f5f9;
+            color: var(--text);
+            font-weight: 700;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 12px 10px;
+            border-bottom: 2px solid #cbd5e1;
+            white-space: nowrap;
+            text-align: left;
+        }
+        table tbody td {
+            padding: 10px;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            vertical-align: middle;
+        }
+        table tbody tr { transition: var(--transition); cursor: pointer; }
+        table tbody tr:hover { background: #f8fafc; }
+        table tbody tr.selected-row { background: #eff6ff; outline: 2px solid var(--primary); outline-offset: -2px; border-radius: 4px; }
+        .empty-state { text-align: center; padding: 50px 20px; color: var(--text-muted); font-size: 0.95rem; }
+        .empty-state .icon { font-size: 48px; display: block; margin-bottom: 12px; }
+        .row-actions { display: flex; gap: 4px; }
+
+        /* TOAST */
+        .toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+        .toast {
+            padding: 12px 20px;
+            border-radius: var(--radius-sm);
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.85rem;
+            box-shadow: var(--shadow-lg);
+            animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.5s forwards;
+            max-width: 420px;
+        }
+        .toast.success { background: #059669; }
+        .toast.error { background: #dc2626; }
+        .toast.info { background: #2563eb; }
+        @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOut { to { opacity: 0; transform: translateY(-10px); } }
+
+        .import-panel {
+            display: none;
+            margin-top: 14px;
+            padding: 18px 20px;
+            background: #fafafe;
+            border: 1.5px dashed #cbd5e1;
+            border-radius: var(--radius);
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .import-panel.visible { display: flex; }
+        .import-panel input[type="file"] { font-size: 0.85rem; }
+
+        @media (max-width: 768px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .form-row { flex-direction: column; }
+            .actions-row { flex-direction: column; align-items: stretch; }
+            .btn { justify-content: center; }
+            table { min-width: 1200px; font-size: 0.7rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- HEADER -->
+    <header class="app-header">
+        <div class="logo-area">
+            <div class="logo-icon">📋</div>
+            <div>
+                <h1>Agent & Shop Data Manager</h1>
+                <p class="subtitle">Sections A · B · C · D — Now with Date & MN‑ATR Number</p>
+            </div>
+        </div>
+        <div class="badge-pill">
+            📦 Stored Entries: <span class="count" id="entryCount">0</span>
+        </div>
+    </header>
+
+    <!-- FORM CARD -->
+    <section class="card form-section">
+        <h2 style="margin-bottom:6px;font-size:1.1rem;font-weight:700;">📝 Data Entry Form</h2>
+        <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:18px;">
+            Fill all fields. <strong>Ctrl+Enter</strong> to submit, <strong>Escape</strong> to clear, click a table row to edit.
+        </p>
+
+        <form id="dataForm" novalidate>
+            <!-- SECTION A -->
+            <div class="section-block section-a">
+                <span class="section-badge">Section A</span>
+                <h3>🏪 Shop & Agent Details</h3>
+                <div class="form-grid">
+                    <div class="form-group"><label>Shop Name <span class="required-star">*</span></label><input type="text" id="shopName" placeholder="e.g. Mwangi General Store" required></div>
+                    <div class="form-group"><label>Physical Address <span class="required-star">*</span></label><input type="text" id="physicalAddress" placeholder="e.g. 123 Kenyatta Avenue" required></div>
+                    <div class="form-group"><label>Agent Full Name <span class="required-star">*</span></label><input type="text" id="agentFullName" placeholder="e.g. John Doe" required></div>
+                    <div class="form-group"><label>Personal Phone Number</label><input type="tel" id="personalPhoneNumber" placeholder="+254 712 345 678"></div>
+                    <div class="form-group"><label>Alternative Number</label><input type="tel" id="alternativeNumber" placeholder="+254 723 456 789"></div>
+                    <div class="form-group"><label>National ID</label><input type="text" id="nationalId" placeholder="12345678"></div>
+                    <div class="form-group"><label>KRA PIN</label><input type="text" id="kraPin" placeholder="A001234567Z"></div>
+                    <div class="form-group">
+                        <label>GPS Coordinates</label>
+                        <div class="form-row" style="align-items:flex-end;">
+                            <div class="form-group" style="margin-bottom:0;"><input type="number" id="gpsLatitude" placeholder="Latitude" step="any"></div>
+                            <div class="form-group" style="margin-bottom:0;"><input type="number" id="gpsLongitude" placeholder="Longitude" step="any"></div>
+                            <button type="button" class="gps-btn" id="getLocationBtn" title="Get current GPS location">📍 Locate</button>
+                        </div>
+                    </div>
+                    <div class="form-group"><label>Landmark / Nearby Building</label><input type="text" id="landmark" placeholder="Next to Equity Bank"></div>
+                </div>
+            </div>
+
+            <!-- SECTION B -->
+            <div class="section-block section-b">
+                <span class="section-badge">Section B</span>
+                <h3>🔧 Machine Details</h3>
+                <div class="form-grid">
+                    <div class="form-group"><label>KP Number <span class="required-star">*</span></label><input type="text" id="kpNumber" placeholder="KP-2024-001" required></div>
+                    <div class="form-group">
+                        <label>Machine Currently at Outlet <span class="required-star">*</span></label>
+                        <select id="machineAtOutlet" required>
+                            <option value="">— Select —</option>
+                            <option value="Yes">✅ Yes</option>
+                            <option value="No">❌ No</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION C -->
+            <div class="section-block section-c">
+                <span class="section-badge">Section C</span>
+                <h3>💰 Commission Agreement</h3>
+                <div class="form-grid">
+                    <div class="form-group"><label>Agreed Agent Commission (ksh / litre)</label><input type="number" id="agentCommission" placeholder="10" step="any" value="10" min="0"></div>
+                </div>
+            </div>
+
+            <!-- NEW SECTION D – Date & MN-ATR Number -->
+            <div class="section-block section-d">
+                <span class="section-badge">Section D</span>
+                <h3>📅 Additional Identifiers</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Date <span style="font-weight:400;text-transform:none;">(Agreement / Registration)</span></label>
+                        <input type="date" id="entryDate">
+                    </div>
+                    <div class="form-group">
+                        <label>MN‑ATR Number</label>
+                        <input type="text" id="mnAtrNumber" placeholder="e.g. MN-ATR-001">
+                    </div>
+                </div>
+            </div>
+
+            <!-- BUTTONS -->
+            <div class="actions-row">
+                <button type="submit" class="btn btn-primary" id="submitBtn">➕ Add Entry</button>
+                <button type="button" class="btn btn-outline" id="clearFormBtn">🧹 Clear Form</button>
+                <span class="spacer"></span>
+                <span id="editIndicator" style="font-size:0.8rem;color:var(--warning);font-weight:600;display:none;">⚠️ Editing existing entry — Submit to update</span>
+            </div>
+        </form>
+    </section>
+
+    <!-- DATA TABLE CARD -->
+    <section class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+            <h2 style="font-size:1.05rem;font-weight:700;">📊 All Entries</h2>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="btn btn-csv btn-sm" id="exportCsvBtn">📥 CSV</button>
+                <button class="btn btn-pdf btn-sm" id="exportPdfBtn">📥 PDF</button>
+                <button class="btn btn-json btn-sm" id="exportJsonBtn">📥 JSON</button>
+                <button class="btn btn-import btn-sm" id="toggleImportBtn">📤 Import CSV</button>
+            </div>
+        </div>
+
+        <div class="import-panel" id="importPanel">
+            <span style="font-weight:600;font-size:0.85rem;">📂 Feed system via CSV (must include headers for Date & MN-ATR Number)</span>
+            <input type="file" id="csvFileInput" accept=".csv" style="flex:1;min-width:200px;">
+            <button class="btn btn-import btn-sm" id="processImportBtn">🔍 Process Import</button>
+            <button class="btn btn-outline btn-sm" id="cancelImportBtn">✖ Cancel</button>
+        </div>
+
+        <div class="table-outer">
+            <div class="table-scroll" id="tableScroll">
+                <table id="dataTable">
+                    <thead>
+                         <tr>
+                            <th>#</th>
+                            <th>Shop Name</th>
+                            <th>Physical Address</th>
+                            <th>Agent Full Name</th>
+                            <th>Phone</th>
+                            <th>Alt. Number</th>
+                            <th>National ID</th>
+                            <th>KRA PIN</th>
+                            <th>GPS (Lat, Long)</th>
+                            <th>Landmark</th>
+                            <th>KP Number</th>
+                            <th>Machine at Outlet</th>
+                            <th>Commission</th>
+                            <th>Date</th>
+                            <th>MN-ATR Number</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr class="empty-row"><td colspan="16" class="empty-state"><span class="icon">📭</span>No entries yet. Use the form or import CSV.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+    (function() {
+        const STORAGE_KEY = 'agentShopData_v3_date_mnatr';
+        let entries = [];
+        let editingId = null;
+        let selectedRowEl = null;
+
+        // DOM refs
+        const form = document.getElementById('dataForm');
+        const tableBody = document.getElementById('tableBody');
+        const entryCountEl = document.getElementById('entryCount');
+        const submitBtn = document.getElementById('submitBtn');
+        const clearFormBtn = document.getElementById('clearFormBtn');
+        const editIndicator = document.getElementById('editIndicator');
+        const getLocationBtn = document.getElementById('getLocationBtn');
+        const toastContainer = document.getElementById('toastContainer');
+        const importPanel = document.getElementById('importPanel');
+        const toggleImportBtn = document.getElementById('toggleImportBtn');
+        const processImportBtn = document.getElementById('processImportBtn');
+        const cancelImportBtn = document.getElementById('cancelImportBtn');
+        const csvFileInput = document.getElementById('csvFileInput');
+        const tableScroll = document.getElementById('tableScroll');
+
+        const fieldRefs = {
+            shopName: document.getElementById('shopName'),
+            physicalAddress: document.getElementById('physicalAddress'),
+            agentFullName: document.getElementById('agentFullName'),
+            personalPhoneNumber: document.getElementById('personalPhoneNumber'),
+            alternativeNumber: document.getElementById('alternativeNumber'),
+            nationalId: document.getElementById('nationalId'),
+            kraPin: document.getElementById('kraPin'),
+            gpsLatitude: document.getElementById('gpsLatitude'),
+            gpsLongitude: document.getElementById('gpsLongitude'),
+            landmark: document.getElementById('landmark'),
+            kpNumber: document.getElementById('kpNumber'),
+            machineAtOutlet: document.getElementById('machineAtOutlet'),
+            agentCommission: document.getElementById('agentCommission'),
+            entryDate: document.getElementById('entryDate'),
+            mnAtrNumber: document.getElementById('mnAtrNumber'),
+        };
+
+        // Storage
+        function loadFromStorage() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) entries = JSON.parse(raw);
+                if (!Array.isArray(entries)) entries = [];
+            } catch(e) { entries = []; }
+        }
+        function saveToStorage() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); } catch(e) { showToast('Storage full! Export and clear entries.', 'error'); } }
+
+        window.addEventListener('storage', (e) => { if (e.key === STORAGE_KEY) { loadFromStorage(); renderTable(); updateEntryCount(); } });
+
+        // Toast
+        function showToast(msg, type='info') {
+            const t = document.createElement('div'); t.className = `toast ${type}`; t.textContent = msg;
+            toastContainer.appendChild(t); setTimeout(() => { if(t.parentNode) t.remove(); }, 2900);
+        }
+
+        // Form helpers
+        function getFormData() {
+            return {
+                shopName: fieldRefs.shopName.value.trim(),
+                physicalAddress: fieldRefs.physicalAddress.value.trim(),
+                agentFullName: fieldRefs.agentFullName.value.trim(),
+                personalPhoneNumber: fieldRefs.personalPhoneNumber.value.trim(),
+                alternativeNumber: fieldRefs.alternativeNumber.value.trim(),
+                nationalId: fieldRefs.nationalId.value.trim(),
+                kraPin: fieldRefs.kraPin.value.trim(),
+                gpsLatitude: fieldRefs.gpsLatitude.value.trim(),
+                gpsLongitude: fieldRefs.gpsLongitude.value.trim(),
+                landmark: fieldRefs.landmark.value.trim(),
+                kpNumber: fieldRefs.kpNumber.value.trim(),
+                machineAtOutlet: fieldRefs.machineAtOutlet.value,
+                agentCommission: fieldRefs.agentCommission.value.trim(),
+                entryDate: fieldRefs.entryDate.value.trim(),
+                mnAtrNumber: fieldRefs.mnAtrNumber.value.trim(),
+            };
+        }
+
+        function setFormData(data) {
+            fieldRefs.shopName.value = data.shopName || '';
+            fieldRefs.physicalAddress.value = data.physicalAddress || '';
+            fieldRefs.agentFullName.value = data.agentFullName || '';
+            fieldRefs.personalPhoneNumber.value = data.personalPhoneNumber || '';
+            fieldRefs.alternativeNumber.value = data.alternativeNumber || '';
+            fieldRefs.nationalId.value = data.nationalId || '';
+            fieldRefs.kraPin.value = data.kraPin || '';
+            fieldRefs.gpsLatitude.value = data.gpsLatitude || '';
+            fieldRefs.gpsLongitude.value = data.gpsLongitude || '';
+            fieldRefs.landmark.value = data.landmark || '';
+            fieldRefs.kpNumber.value = data.kpNumber || '';
+            fieldRefs.machineAtOutlet.value = data.machineAtOutlet || '';
+            fieldRefs.agentCommission.value = data.agentCommission || '10';
+            fieldRefs.entryDate.value = data.entryDate || '';
+            fieldRefs.mnAtrNumber.value = data.mnAtrNumber || '';
+        }
+
+        function clearForm() {
+            setFormData({});
+            editingId = null;
+            submitBtn.textContent = '➕ Add Entry';
+            submitBtn.className = 'btn btn-primary';
+            editIndicator.style.display = 'none';
+            if(selectedRowEl) { selectedRowEl.classList.remove('selected-row'); selectedRowEl = null; }
+            fieldRefs.shopName.focus();
+        }
+
+        function validateFormData(data) {
+            const errs = [];
+            if(!data.shopName) errs.push('Shop Name required.');
+            if(!data.physicalAddress) errs.push('Physical Address required.');
+            if(!data.agentFullName) errs.push('Agent Full Name required.');
+            if(!data.kpNumber) errs.push('KP Number required.');
+            if(!data.machineAtOutlet) errs.push('Machine at Outlet required.');
+            return errs;
+        }
+
+        function addEntry(data) {
+            entries.push({ id: 'entry_'+Date.now()+'_'+Math.random().toString(36).substr(2,6), ...data, createdAt: new Date().toISOString() });
+            saveToStorage(); renderTable(); updateEntryCount(); showToast('✅ Entry added!', 'success');
+        }
+        function updateEntry(id, data) {
+            const idx = entries.findIndex(e=>e.id===id);
+            if(idx!==-1) { entries[idx] = {...entries[idx], ...data, updatedAt: new Date().toISOString()}; saveToStorage(); renderTable(); updateEntryCount(); showToast('✏️ Entry updated!', 'info'); }
+        }
+        function deleteEntry(id) {
+            const entry = entries.find(e=>e.id===id);
+            if(confirm(`Delete entry for "${entry?.shopName || entry?.agentFullName || 'Unknown'}"?`)) {
+                entries = entries.filter(e=>e.id!==id); saveToStorage(); renderTable(); updateEntryCount(); if(editingId===id) clearForm(); showToast('🗑️ Deleted.', 'error');
+            }
+        }
+
+        function renderTable() {
+            if(!entries.length) {
+                tableBody.innerHTML = '<tr class="empty-row"><td colspan="16" class="empty-state"><span class="icon">📭</span>No entries yet.</td></tr>';
+                return;
+            }
+            tableBody.innerHTML = entries.map((e,i)=>{
+                const gps = (e.gpsLatitude||e.gpsLongitude) ? `${e.gpsLatitude||'—'}, ${e.gpsLongitude||'—'}` : '—';
+                const comm = e.agentCommission ? `ksh ${e.agentCommission}/l` : 'ksh 10/l';
+                return `<tr class="${editingId===e.id?'selected-row':''}" data-id="${e.id}">
+                    <td>${i+1}</td>
+                    <td>${escapeHtml(e.shopName)}</td><td>${escapeHtml(e.physicalAddress)}</td><td>${escapeHtml(e.agentFullName)}</td>
+                    <td>${escapeHtml(e.personalPhoneNumber)}</td><td>${escapeHtml(e.alternativeNumber)}</td><td>${escapeHtml(e.nationalId)}</td>
+                    <td>${escapeHtml(e.kraPin)}</td><td>${escapeHtml(gps)}</td><td>${escapeHtml(e.landmark)}</td>
+                    <td><strong>${escapeHtml(e.kpNumber)}</strong></td>
+                    <td>${e.machineAtOutlet==='Yes'?'✅ Yes':e.machineAtOutlet==='No'?'❌ No':'—'}</td>
+                    <td>${escapeHtml(comm)}</td>
+                    <td>${escapeHtml(e.entryDate||'—')}</td>
+                    <td>${escapeHtml(e.mnAtrNumber||'—')}</td>
+                    <td class="row-actions" onclick="event.stopPropagation();">
+                        <button class="btn btn-outline btn-xs" data-action="edit" data-id="${e.id}">✏️</button>
+                        <button class="btn btn-danger btn-xs" data-action="delete" data-id="${e.id}">🗑️</button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        function escapeHtml(str) { if(!str) return '—'; const d=document.createElement('div'); d.textContent=str; return d.innerHTML; }
+        function updateEntryCount() { entryCountEl.textContent = entries.length; }
+
+        // Row click delegation
+        tableBody.addEventListener('click', function(e) {
+            const btn = e.target.closest('[data-action]');
+            const row = e.target.closest('tr[data-id]');
+            if(btn) {
+                const id = btn.getAttribute('data-id');
+                if(btn.getAttribute('data-action')==='edit') loadEntryForEditing(id);
+                else deleteEntry(id);
+                return;
+            }
+            if(row && row.getAttribute('data-id')) loadEntryForEditing(row.getAttribute('data-id'));
+        });
+
+        function loadEntryForEditing(id) {
+            const entry = entries.find(e=>e.id===id); if(!entry) return;
+            setFormData(entry); editingId = id;
+            submitBtn.textContent = '✏️ Update Entry'; submitBtn.className = 'btn btn-primary'; editIndicator.style.display='inline';
+            if(selectedRowEl) selectedRowEl.classList.remove('selected-row');
+            const rowEl = tableBody.querySelector(`tr[data-id="${id}"]`);
+            if(rowEl) { rowEl.classList.add('selected-row'); selectedRowEl = rowEl; rowEl.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+            fieldRefs.shopName.focus();
+            showToast('📝 Entry loaded for editing.', 'info');
+        }
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const data = getFormData();
+            const errors = validateFormData(data);
+            if(errors.length) { showToast('❌ '+errors.join(' '), 'error'); return; }
+            if(editingId) { updateEntry(editingId, data); clearForm(); }
+            else { addEntry(data); clearForm(); }
+            tableScroll.scrollTop = 0;
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if((e.ctrlKey||e.metaKey) && e.key==='Enter') { if(document.activeElement?.closest('#dataForm')) { e.preventDefault(); form.dispatchEvent(new Event('submit')); } }
+            if(e.key==='Escape' && document.activeElement?.closest('#dataForm')) { e.preventDefault(); clearForm(); showToast('🧹 Form cleared.', 'info'); }
+        });
+
+        clearFormBtn.addEventListener('click', ()=>{ clearForm(); showToast('🧹 Form cleared.', 'info'); });
+
+        // GPS
+        getLocationBtn.addEventListener('click', ()=>{
+            if(!navigator.geolocation) { showToast('Geolocation not supported', 'error'); return; }
+            getLocationBtn.textContent='⏳ Locating...'; getLocationBtn.disabled=true;
+            navigator.geolocation.getCurrentPosition(
+                (pos)=>{ fieldRefs.gpsLatitude.value=pos.coords.latitude.toFixed(6); fieldRefs.gpsLongitude.value=pos.coords.longitude.toFixed(6); showToast('📍 GPS captured!','success'); getLocationBtn.textContent='📍 Locate'; getLocationBtn.disabled=false; },
+                (err)=>{ showToast('❌ '+err.message,'error'); getLocationBtn.textContent='📍 Locate'; getLocationBtn.disabled=false; },
+                {enableHighAccuracy:true, timeout:15000}
+            );
+        });
+
+        // Export CSV
+        document.getElementById('exportCsvBtn').addEventListener('click', ()=>{
+            if(!entries.length) { showToast('No entries to export','error'); return; }
+            const headers = ['Shop Name','Physical Address','Agent Full Name','Personal Phone Number','Alternative Number','National ID','KRA PIN','GPS Latitude','GPS Longitude','Landmark','KP Number','Machine Currently at Outlet','Agreed Agent Commission (ksh/litre)','Date','MN-ATR Number'];
+            const rows = entries.map(e=>[e.shopName||'', e.physicalAddress||'', e.agentFullName||'', e.personalPhoneNumber||'', e.alternativeNumber||'', e.nationalId||'', e.kraPin||'', e.gpsLatitude||'', e.gpsLongitude||'', e.landmark||'', e.kpNumber||'', e.machineAtOutlet||'', e.agentCommission||'10', e.entryDate||'', e.mnAtrNumber||'']);
+            const csv = [headers, ...rows].map(r=>r.map(c=>{ const s=String(c); if(s.includes(',')||s.includes('"')||s.includes('\n')) return '"'+s.replace(/"/g,'""')+'"'; return s; }).join(',')).join('\n');
+            const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+            downloadBlob(blob, 'agent_shop_data.csv');
+            showToast('📥 CSV exported!','success');
+        });
+
+        // Export JSON
+        document.getElementById('exportJsonBtn').addEventListener('click', ()=>{
+            if(!entries.length) { showToast('No entries','error'); return; }
+            const exportData = entries.map(e=>({...e, agentCommissionKshPerLitre:e.agentCommission}));
+            const blob = new Blob([JSON.stringify(exportData,null,2)], {type:'application/json'});
+            downloadBlob(blob, 'agent_shop_data.json');
+            showToast('📥 JSON exported!','success');
+        });
+
+        // Export PDF
+        document.getElementById('exportPdfBtn').addEventListener('click', ()=>{
+            if(!entries.length) { showToast('No entries','error'); return; }
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('landscape','mm','A4');
+            doc.setFontSize(16); doc.text('Agent & Shop Data Report', 14, 18);
+            doc.setFontSize(10); doc.text(`Generated: ${new Date().toLocaleString()}  |  Total: ${entries.length}`, 14, 25);
+            const headers = ['Shop Name','Physical Address','Agent Name','Phone','Alt. Number','National ID','KRA PIN','GPS','Landmark','KP Number','Machine Outlet','Commission','Date','MN-ATR'];
+            const rows = entries.map(e=>[e.shopName||'', e.physicalAddress||'', e.agentFullName||'', e.personalPhoneNumber||'', e.alternativeNumber||'', e.nationalId||'', e.kraPin||'', (e.gpsLatitude||e.gpsLongitude)?`${e.gpsLatitude||''}, ${e.gpsLongitude||''}`:'', e.landmark||'', e.kpNumber||'', e.machineAtOutlet||'', e.agentCommission?`ksh ${e.agentCommission}/l`:'ksh 10/l', e.entryDate||'', e.mnAtrNumber||'']);
+            doc.autoTable({ head:[headers], body:rows, startY:30, styles:{fontSize:6.5, cellPadding:2.5}, headStyles:{fillColor:[37,99,235]}, alternateRowStyles:{fillColor:[248,250,252]}, margin:{top:30,left:8,right:8,bottom:15} });
+            const pageCount = doc.internal.getNumberOfPages();
+            for(let i=1;i<=pageCount;i++){ doc.setPage(i); doc.setFontSize(8); doc.text(`Page ${i}/${pageCount}`, doc.internal.pageSize.width-30, doc.internal.pageSize.height-8); }
+            doc.save('agent_shop_data.pdf');
+            showToast('📥 PDF exported!','success');
+        });
+
+        function downloadBlob(blob, filename) {
+            const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        }
+
+        // Import CSV
+        toggleImportBtn.addEventListener('click', ()=>{ importPanel.classList.toggle('visible'); toggleImportBtn.textContent = importPanel.classList.contains('visible') ? '🔽 Hide Import' : '📤 Import CSV'; csvFileInput.value=''; });
+        cancelImportBtn.addEventListener('click', ()=>{ importPanel.classList.remove('visible'); toggleImportBtn.textContent='📤 Import CSV'; csvFileInput.value=''; });
+        processImportBtn.addEventListener('click', ()=>{
+            const file = csvFileInput.files[0]; if(!file) { showToast('Select a CSV file','error'); return; }
+            const reader = new FileReader();
+            reader.onload = function(e){
+                try {
+                    const text = e.target.result;
+                    const parsed = parseCSV(text);
+                    if(!parsed.length) { showToast('CSV empty/invalid','error'); return; }
+                    const imported = parsed.map(row=>({
+                        id: 'entry_'+Date.now()+'_'+Math.random().toString(36).substr(2,6),
+                        shopName: row['Shop Name'] || row['shopName'] || '',
+                        physicalAddress: row['Physical Address'] || row['physicalAddress'] || '',
+                        agentFullName: row['Agent Full Name'] || row['agentFullName'] || '',
+                        personalPhoneNumber: row['Personal Phone Number'] || row['personalPhoneNumber'] || '',
+                        alternativeNumber: row['Alternative Number'] || row['alternativeNumber'] || '',
+                        nationalId: row['National ID'] || row['nationalId'] || '',
+                        kraPin: row['KRA PIN'] || row['kraPin'] || '',
+                        gpsLatitude: row['GPS Latitude'] || row['gpsLatitude'] || '',
+                        gpsLongitude: row['GPS Longitude'] || row['gpsLongitude'] || '',
+                        landmark: row['Landmark / Nearby Building'] || row['landmark'] || '',
+                        kpNumber: row['KP Number'] || row['kpNumber'] || '',
+                        machineAtOutlet: row['Machine Currently at Outlet'] || row['machineAtOutlet'] || '',
+                        agentCommission: row['Agreed Agent Commission (ksh/litre)'] || row['agentCommission'] || '10',
+                        entryDate: row['Date'] || row['entryDate'] || '',
+                        mnAtrNumber: row['MN-ATR Number'] || row['mnAtrNumber'] || row['MN ATR Number'] || '',
+                        createdAt: new Date().toISOString()
+                    })).filter(e=>e.shopName||e.agentFullName||e.kpNumber);
+                    if(!imported.length) { showToast('No valid entries found. Check headers.','error'); return; }
+                    entries = [...entries, ...imported]; saveToStorage(); renderTable(); updateEntryCount();
+                    showToast(`📤 Imported ${imported.length} entries!`,'success');
+                    importPanel.classList.remove('visible'); toggleImportBtn.textContent='📤 Import CSV'; csvFileInput.value=''; tableScroll.scrollTop=0;
+                } catch(err) { showToast('CSV parse error','error'); console.error(err); }
+            };
+            reader.onerror = ()=> showToast('File read error','error');
+            reader.readAsText(file, 'UTF-8');
+        });
+
+        function parseCSV(text) {
+            const lines = []; let current=[], field='', inQuotes=false;
+            if(text.charCodeAt(0)===0xFEFF) text=text.slice(1);
+            for(let i=0;i<text.length;i++){
+                const ch=text[i], next=text[i+1];
+                if(inQuotes){ if(ch==='"'){ if(next==='"'){ field+='"'; i++; } else inQuotes=false; } else field+=ch; }
+                else {
+                    if(ch==='"') inQuotes=true;
+                    else if(ch===',' || ch==='\n' || (ch==='\r'&&next==='\n')){
+                        current.push(field.trim()); field='';
+                        if(ch!==','){ if(current.some(c=>c!=='')) lines.push(current); current=[]; if(ch==='\r') i++; }
+                    } else if(ch==='\r'){ current.push(field.trim()); if(current.some(c=>c!=='')) lines.push(current); current=[]; field=''; }
+                    else field+=ch;
+                }
+            }
+            current.push(field.trim()); if(current.some(c=>c!=='')) lines.push(current);
+            if(lines.length<2) return [];
+            const headers = lines[0].map(h=>h.trim());
+            return lines.slice(1).map(row=>{ const obj={}; headers.forEach((h,i)=>{ obj[h]=row[i]||''; }); return obj; });
+        }
+
+        // Init
+        loadFromStorage(); renderTable(); updateEntryCount(); clearForm(); importPanel.classList.remove('visible');
+    })();
+</script>
+</body>
+</html>
